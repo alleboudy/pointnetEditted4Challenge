@@ -5,12 +5,13 @@ import h5py
 
 from os import listdir
 from os.path import isfile, join
-NUMBERofSamplesPerModel = 3000
-
+NUMBERofSamplesPerModel = 5000#how many sample clouds of size 2048 to draw per model
+SizeOfTestSplit= 1000#how many of the drawn samples is for test
+SizeOfValSplit= 1000#how many for validation
 mainplyDir='models/'
 plyfiles2load=[f for f in listdir(mainplyDir) if isfile(join(mainplyDir, f))]
 #['bird-.ply','bond-.ply','can-.ply','cracker-.ply','shoe-.ply','teapot-.ply']
-outputh5FilePath='21ktrain.h5'
+outputh5FilePath='gen'
 
 
 
@@ -59,9 +60,15 @@ def load_ply_data(filename):
 
 
 def load_ply_data_manySamples(filename,numberOfSamples):
-    try:
+    #try:
         allSamples_xyz_arrays=[]
-        allSamles_normals_arrays=[]
+        allSamples_normals_arrays=[]
+        train_xyz_arrays=[]
+        train_normals_arrays=[]
+        val_xyz_arrays=[]
+        val_normals_arrays=[]
+        test_xyz_arrays=[]
+        test_normals_arrays=[]
         plydata = PlyData.read(filename)
         pc = plydata['vertex'].data
         pcxyz_array=[]
@@ -80,11 +87,22 @@ def load_ply_data_manySamples(filename,numberOfSamples):
                 sampled_pcxyz_array.append(pcxyz_array[i])
                 sampled_pcnxyz_array.append(pcnxyz_array[i])
             allSamples_xyz_arrays.append(np.asarray(sampled_pcxyz_array))
-            allSamles_normals_arrays.append(np.asarray(sampled_pcnxyz_array))
-
-        return allSamples_xyz_arrays,allSamles_normals_arrays
-    except :
-        print("err")
+            allSamples_normals_arrays.append(np.asarray(sampled_pcnxyz_array))
+        allindices = list(range(len(allSamples_xyz_arrays)))
+        shuffle(allindices)
+        valIndices = allindices[:SizeOfValSplit]
+        testIndices = allindices[SizeOfValSplit:SizeOfValSplit+SizeOfTestSplit]
+        #print(SizeOfValSplit,SizeOfTestSplit,testIndices)
+        trainIndices = allindices[SizeOfTestSplit+SizeOfValSplit:]
+        train_xyz_arrays = [allSamples_xyz_arrays[i] for i in trainIndices]
+        test_xyz_arrays = [allSamples_xyz_arrays[i] for i in testIndices]
+        val_xyz_arrays = [allSamples_xyz_arrays[i] for i in valIndices] 
+        train_normals_arrays = [allSamples_normals_arrays[i] for i in trainIndices]
+        test_normals_arrays = [allSamples_normals_arrays[i] for i in testIndices]
+        val_normals_arrays = [allSamples_normals_arrays[i] for i in valIndices] 
+        return train_xyz_arrays,train_normals_arrays,test_xyz_arrays,test_normals_arrays,val_xyz_arrays,val_normals_arrays
+    #except :
+        #print("err")
 
 
 
@@ -95,21 +113,35 @@ labelsMap = dict({"bird":0,"bond":1,"can":2,"cracker":3,"house":4,"shoe":5,"teap
 allpoints=[]
 allnormals=[]
 alllabels=[]
+valpoints=[]
+valnormals=[]
+vallabels=[]
+testpoints=[]
+testnormals=[]
+testlabels=[]
 counter=0
 for plyFile in plyfiles2load:
     print(plyFile)
     counter+=1
     print("file number: ",counter)
-    try:
-        plyxyz,plynxyz = load_ply_data_manySamples(join(mainplyDir,plyFile),NUMBERofSamplesPerModel)
-        allpoints+=plyxyz
-        allnormals+=plynxyz
-        for i in range(len(plynxyz)):
-            alllabels.append(np.asarray([labelsMap[plyFile.split('-')[0]]]))
-        
-    except:
-        print('err')
-        continue
+    #try:
+    plyxyz,plynxyz,testxyz,testnxyz,valxyz,valnxyz = load_ply_data_manySamples(join(mainplyDir,plyFile),NUMBERofSamplesPerModel)
+    allpoints+=plyxyz
+    allnormals+=plynxyz
+    valpoints+=valxyz
+    valnormals+=valnxyz
+    testpoints+=testxyz
+    testnormals+=testnxyz
+    for i in range(len(plynxyz)):
+        alllabels.append(np.asarray([labelsMap[plyFile.split('-')[0]]]))
+    for i in range(len(testxyz)):
+        testlabels.append(np.asarray([labelsMap[plyFile.split('-')[0]]]))
+    for i in range(len(valnxyz)):
+        vallabels.append(np.asarray([labelsMap[plyFile.split('-')[0]]]))
+    
+    #except:
+        #print('errhere')
+        #continue
 
 
 indices=list(range(len(allpoints)))
@@ -121,4 +153,28 @@ alllabels_shuffle = [alllabels[i] for i in indices]
 
 
 print(np.asarray(allpoints_shuffle).shape)
-save_h5_data_label_normal(outputh5FilePath,np.asarray(allpoints_shuffle),np.asarray(alllabels_shuffle),np.asarray(allnormals_shuffle))
+save_h5_data_label_normal(outputh5FilePath+'/'+str((NUMBERofSamplesPerModel-SizeOfTestSplit-SizeOfValSplit))+'train.h5',np.asarray(allpoints_shuffle),np.asarray(alllabels_shuffle),np.asarray(allnormals_shuffle))
+
+
+valindices=list(range(len(valpoints)))
+shuffle(valindices)
+
+valpoints_shuffle = [valpoints[i] for i in valindices] 
+valnormals_shuffle = [valnormals[i] for i in valindices] 
+vallabels_shuffle = [vallabels[i] for i in valindices] 
+
+
+print(np.asarray(valpoints_shuffle).shape)
+save_h5_data_label_normal(outputh5FilePath+'/'+str(SizeOfValSplit)+'val.h5',np.asarray(valpoints_shuffle),np.asarray(vallabels_shuffle),np.asarray(valnormals_shuffle))
+
+
+testindices=list(range(len(testpoints)))
+shuffle(testindices)
+print("test indices ",len(testindices) )
+testpoints_shuffle = [testpoints[i] for i in testindices] 
+testnormals_shuffle = [testnormals[i] for i in testindices] 
+testlabels_shuffle = [testlabels[i] for i in testindices] 
+
+
+print(np.asarray(testpoints_shuffle).shape)
+save_h5_data_label_normal(outputh5FilePath+'/'+str(SizeOfTestSplit)+'test.h5',np.asarray(testpoints_shuffle),np.asarray(testlabels_shuffle),np.asarray(testnormals_shuffle))
