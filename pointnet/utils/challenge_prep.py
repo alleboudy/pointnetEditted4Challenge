@@ -7,10 +7,10 @@ from os import listdir
 from os.path import isfile, join
 
 
-mainplyDir='C:\\Users\\ahmad\\Downloads\\dataset\\models\\models\\training'
+mainplyDir='models/'
 plyfiles2load=[f for f in listdir(mainplyDir) if isfile(join(mainplyDir, f))]
 #['bird-.ply','bond-.ply','can-.ply','cracker-.ply','shoe-.ply','teapot-.ply']
-outputh5TrFilePath='C:\\Users\\ahmad\\Desktop\\pointnetchallengedata\\21ktrain.h5'
+outputh5FilePath='21ktrain.h5'
 
 
 
@@ -73,7 +73,7 @@ def load_ply_data_manySamples(filename,numberOfSamples):
             pcnxyz_array.append([_nx,_ny,_nz])
         indices = list(range(len(pcxyz_array)))
         for x in range(numberOfSamples):
-            
+           # print('sampling ...') 
             indicessampled= np.random.choice(indices, size=2048)
             for i in indicessampled:
                 sampled_pcxyz_array.append(pcxyz_array[i])
@@ -100,12 +100,14 @@ for plyFile in plyfiles2load:
     counter+=1
     print("file number: ",counter)
     try:
-        plyxyz,plynxyz = load_ply_data_manySamples(join(mainplyDir,plyFile),3000)
-        allpoints.extend(plyxyz)
-        allnormals.extend(plynxyz)
+        plyxyz,plynxyz = load_ply_data_manySamples(join(mainplyDir,plyFile),3)
+        allpoints+=plyxyz
+        allnormals+=plynxyz
         for i in range(len(plynxyz)):
             alllabels.append(np.asarray([labelsMap[plyFile.split('-')[0]]]))
+	    
     except:
+	print('err')
         continue
 
 
@@ -117,5 +119,5 @@ allnormals_shuffle = [allnormals[i] for i in indices]
 alllabels_shuffle = [alllabels[i] for i in indices] 
 
 
-
+print(np.asarray(allpoints_shuffle).shape)
 save_h5_data_label_normal(outputh5FilePath,np.asarray(allpoints_shuffle),np.asarray(alllabels_shuffle),np.asarray(allnormals_shuffle))
