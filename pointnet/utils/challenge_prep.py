@@ -7,10 +7,11 @@ from os import listdir
 from os.path import isfile, join
 
 
-mainplyDir='D:\\plarr\\testplyFiles\\'
+mainplyDir='C:\\Users\\ahmad\\Downloads\\dataset\\models\\models\\training'
 plyfiles2load=[f for f in listdir(mainplyDir) if isfile(join(mainplyDir, f))]
 #['bird-.ply','bond-.ply','can-.ply','cracker-.ply','shoe-.ply','teapot-.ply']
-outputh5FilePath='C:\\Users\\ahmad\\Desktop\\pointnetchallengedata\\test.h5'
+outputh5TrFilePath='C:\\Users\\ahmad\\Desktop\\pointnetchallengedata\\21ktrain.h5'
+
 
 
 
@@ -56,6 +57,38 @@ def load_ply_data(filename):
 
 
 
+
+def load_ply_data_manySamples(filename,numberOfSamples):
+    try:
+        allSamples_xyz_arrays=[]
+        allSamles_normals_arrays=[]
+        plydata = PlyData.read(filename)
+        pc = plydata['vertex'].data
+        pcxyz_array=[]
+        pcnxyz_array=[]
+        sampled_pcxyz_array=[]
+        sampled_pcnxyz_array=[]
+        for x,y,z,_nx,_ny,_nz,_r,_g,_b,_a in pc:
+            pcxyz_array.append([x, y, z])
+            pcnxyz_array.append([_nx,_ny,_nz])
+        indices = list(range(len(pcxyz_array)))
+        for x in range(numberOfSamples):
+            
+            indicessampled= np.random.choice(indices, size=2048)
+            for i in indicessampled:
+                sampled_pcxyz_array.append(pcxyz_array[i])
+                sampled_pcnxyz_array.append(pcnxyz_array[i])
+            allSamples_xyz_arrays.append(np.asarray(sampled_pcxyz_array))
+            allSamles_normals_arrays.append(np.asarray(sampled_pcnxyz_array))
+
+        return allSamples_xyz_arrays,allSamles_normals_arrays
+    except :
+        pass
+
+
+
+
+
 labelsMap = dict({"bird":0,"bond":1,"can":2,"cracker":3,"house":4,"shoe":5,"teapot":6})
 
 allpoints=[]
@@ -67,10 +100,11 @@ for plyFile in plyfiles2load:
     counter+=1
     print("file number: ",counter)
     try:
-        plyxyz,plynxyz = load_ply_data(join(mainplyDir,plyFile))
-        allpoints.append(plyxyz)
-        allnormals.append(plynxyz)
-        alllabels.append(np.asarray([labelsMap[plyFile.split('-')[0]]]))
+        plyxyz,plynxyz = load_ply_data_manySamples(join(mainplyDir,plyFile),3000)
+        allpoints.extend(plyxyz)
+        allnormals.extend(plynxyz)
+        for i in range(len(plynxyz)):
+            alllabels.append(np.asarray([labelsMap[plyFile.split('-')[0]]]))
     except:
         continue
 
