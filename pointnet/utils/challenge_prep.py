@@ -5,7 +5,7 @@ import h5py
 
 from os import listdir
 from os.path import isfile, join
-
+NUMBERofSamplesPerModel = 3000
 
 mainplyDir='models/'
 plyfiles2load=[f for f in listdir(mainplyDir) if isfile(join(mainplyDir, f))]
@@ -66,8 +66,7 @@ def load_ply_data_manySamples(filename,numberOfSamples):
         pc = plydata['vertex'].data
         pcxyz_array=[]
         pcnxyz_array=[]
-        sampled_pcxyz_array=[]
-        sampled_pcnxyz_array=[]
+
         for x,y,z,_nx,_ny,_nz,_r,_g,_b,_a in pc:
             pcxyz_array.append([x, y, z])
             pcnxyz_array.append([_nx,_ny,_nz])
@@ -75,6 +74,8 @@ def load_ply_data_manySamples(filename,numberOfSamples):
         for x in range(numberOfSamples):
            # print('sampling ...') 
             indicessampled= np.random.choice(indices, size=2048)
+            sampled_pcxyz_array=[]
+            sampled_pcnxyz_array=[]
             for i in indicessampled:
                 sampled_pcxyz_array.append(pcxyz_array[i])
                 sampled_pcnxyz_array.append(pcnxyz_array[i])
@@ -83,7 +84,7 @@ def load_ply_data_manySamples(filename,numberOfSamples):
 
         return allSamples_xyz_arrays,allSamles_normals_arrays
     except :
-        pass
+        print("err")
 
 
 
@@ -100,14 +101,14 @@ for plyFile in plyfiles2load:
     counter+=1
     print("file number: ",counter)
     try:
-        plyxyz,plynxyz = load_ply_data_manySamples(join(mainplyDir,plyFile),3)
+        plyxyz,plynxyz = load_ply_data_manySamples(join(mainplyDir,plyFile),NUMBERofSamplesPerModel)
         allpoints+=plyxyz
         allnormals+=plynxyz
         for i in range(len(plynxyz)):
             alllabels.append(np.asarray([labelsMap[plyFile.split('-')[0]]]))
-	    
+        
     except:
-	print('err')
+        print('err')
         continue
 
 
