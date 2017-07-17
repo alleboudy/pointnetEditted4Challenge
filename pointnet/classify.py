@@ -15,7 +15,7 @@ import pc_util
 import importlib
 from plyfile import (PlyData, PlyElement, make2d, PlyParseError, PlyProperty)
 import pointnet_cls as MODEL
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--ply_path', default='', help='the 0 centered normalized to unit box ply file to classify')
@@ -73,11 +73,11 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
     current_data = provider.load_ply_data(testFile)
     #current_label = np.squeeze(current_label)
     current_data=np.asarray([current_data,np.zeros_like(current_data)])
-    print(current_data.shape)
+    #print(current_data.shape)
     
     file_size = current_data.shape[0]
     num_batches = 1
-    print(file_size)
+    #print(file_size)
       
     
     batch_pred_sum = np.zeros((2, NUM_CLASSES)) # score for classes
