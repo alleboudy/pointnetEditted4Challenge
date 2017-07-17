@@ -2,6 +2,9 @@ import os
 import sys
 import numpy as np
 import h5py
+from random import shuffle
+from plyfile import (PlyData, PlyElement, make2d, PlyParseError, PlyProperty)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
@@ -87,6 +90,7 @@ def jitter_point_cloud(batch_data, sigma=0.01, clip=0.05):
 def getDataFiles(list_filename):
     return [line.rstrip() for line in open(list_filename)]
 
+
 def load_h5(h5_filename):
     f = h5py.File(h5_filename)
     data = f['data'][:]
@@ -106,3 +110,25 @@ def load_h5_data_label_seg(h5_filename):
 
 def loadDataFile_with_seg(filename):
     return load_h5_data_label_seg(filename)
+
+def load_ply_data(filename):
+
+        plydata = PlyData.read(filename)
+        pc = plydata['vertex'].data
+        pcxyz_array=[]
+        pcnxyz_array=[]
+        sampled_pcxyz_array=[]
+        sampled_pcnxyz_array=[]
+        for items in pc:
+            x=items[0]
+            y=items[1]
+            z=items[2]
+            pcxyz_array.append([x, y, z])
+        indices = list(range(len(pcxyz_array)))
+        indicessampled= np.random.choice(indices, size=2048)
+        for i in indicessampled:
+            sampled_pcxyz_array.append(pcxyz_array[i])
+            
+        return np.asarray(sampled_pcxyz_array)
+
+
