@@ -128,7 +128,22 @@ def load_ply_data(filename):
         indicessampled= np.random.choice(indices, size=2048)
         for i in indicessampled:
             sampled_pcxyz_array.append(pcxyz_array[i])
-            
-        return np.asarray(sampled_pcxyz_array)
+        #normalizing and zero center:
+        sampled_pcxyz_array = np.asarray(sampled_pcxyz_array)
+        #print(sampled_pcxyz_array.shape)
+        minx = min(sampled_pcxyz_array[:,0])
+        miny = min(sampled_pcxyz_array[:,1])
+        minz = min(sampled_pcxyz_array[:,2])
+        maxx = max(sampled_pcxyz_array[:,0])
+        maxy = max(sampled_pcxyz_array[:,1])
+        maxz = max(sampled_pcxyz_array[:,2])
+        scale = min((1 / (maxx - minx)), min(1 / (maxy - miny),1/ (maxz-minz)))
+        sampled_pcxyz_array[:,0] = (sampled_pcxyz_array[:,0] - 0.5*(minx + maxx))*scale + 0.5
+        sampled_pcxyz_array[:,1] = (sampled_pcxyz_array[:,1] - 0.5*(miny + maxy))*scale + 0.5
+        sampled_pcxyz_array[:,2] = (sampled_pcxyz_array[:,2] - 0.5*(minz + maxz))*scale + 0.5
+        sampled_pcxyz_array[:,0] -= np.average(sampled_pcxyz_array[:,0])
+        sampled_pcxyz_array[:,1] -= np.average(sampled_pcxyz_array[:,1])
+        sampled_pcxyz_array[:,2] -= np.average(sampled_pcxyz_array[:,2])
+        return sampled_pcxyz_array
 
 
