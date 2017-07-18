@@ -4,11 +4,14 @@ import numpy as np
 import time
 import os
 import sys
+from os import listdir
+from os.path import isfile, join
 import argparse
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
 sys.path.append(os.path.join(BASE_DIR, 'utils'))
+sys.path.append(os.path.join(BASE_DIR, 'log'))
 import scipy.misc
 import provider
 import pc_util
@@ -18,7 +21,8 @@ import pointnet_cls as MODEL
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--ply_path', default='', help='the 0 centered normalized to unit box ply file to classify')
+parser.add_argument('--ply_path', default='', help='ply file to classify')
+parser.add_argument('--batch_ply_path', default='', help='folder where .ply files exist, if set, will classify the files in one go')
 FLAGS = parser.parse_args()
 
 
@@ -27,6 +31,12 @@ BATCH_SIZE = 2
 NUM_POINT = 2048
 MODEL_PATH = 'log/model.ckpt'
 testFile=FLAGS.ply_path
+testDir = FLAGS.batch_ply_path
+onlyPlyfiles = []
+if testDir:
+    onlyPlyfiles = [join(testDir, f) for f in listdir(testDir) if f.endswith('.ply') and isfile(join(testDir, f))]
+    BATCH_SIZE = len(onlyPlyfiles)
+#print(onlyPlyfiles)
 reverseDict=dict({0:"bird",1:"bond",2:"can",3:"cracker",4:"house",5:"shoe",6:"teapot"})
 NUM_CLASSES = 7
 def evaluate(num_votes):
@@ -70,23 +80,34 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
     #fout = open(os.path.join(DUMP_DIR, 'pred_label.txt'), 'w')
     #for fn in range(len(TEST_FILES)):
     #log_string('----'+str(fn)+'----')
-    current_data = provider.load_ply_data(testFile)
-    #current_label = np.squeeze(current_label)
-    current_data=np.asarray([current_data,np.zeros_like(current_data)])
-    #print(current_data.shape)
-    
-    file_size = current_data.shape[0]
+    current_data=[]
+    if len(onlyPlyfiles)>0 :
+        for plyfile in onlyPlyfiles:
+            #print('loading file')
+            #print(plyfile)
+            current_data.append(provider.load_ply_data(plyfile))
+        current_data = np.asarray(current_data)
+    else:
+        current_data = provider.load_ply_data(testFile)
+        #current_label = np.squeeze(current_label)
+        current_data=np.asarray([current_data,np.zeros_like(current_data)])
+        #print(current_data.shape)
+            
+    #file_size = current_data.shape[0]
     num_batches = 1
     #print(file_size)
       
     
-    batch_pred_sum = np.zeros((2, NUM_CLASSES)) # score for classes
-    batch_pred_classes = np.zeros((2, NUM_CLASSES)) # 0/1 for classes
+    batch_pred_sum = np.zeros((current_data.shape[0], NUM_CLASSES)) # score for classes
+    batch_pred_classes = np.zeros((current_data.shape[0], NUM_CLASSES)) # 0/1 for classes
     feed_dict = {ops['pointclouds_pl']: current_data,
                  
                  ops['is_training_pl']: is_training}
     pred_val = sess.run( ops['pred'],feed_dict=feed_dict)
-    print(reverseDict[np.argmax(pred_val[0])])
+    if(len(onlyPlyfiles)==0):
+        onlyPlyfiles.append(testFile)
+    for i in range(len(onlyPlyfiles)):
+            print(onlyPlyfiles[i]+","+reverseDict[np.argmax(pred_val[i])])
 
 
 if __name__=='__main__':
